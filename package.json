@@ -26,7 +26,8 @@
     "test": "hardhat test --network localhost",
     "run": "npx hardhat run --network hardhat scripts/run.js",
     "test:timelock": "hardhat test --network hardhat ./test/TimeLock-test.js",
-    "deploy:localhost": "npx hardhat run --network localhost scripts/run.js"
+    "deploy:localhost": "npx hardhat run --network localhost scripts/run.js",
+    "fork": "npx hardhat node --fork https://eth-mainnet.alchemyapi.io/v2/[KEY]"
   },
   "browserslist": {
     "production": [

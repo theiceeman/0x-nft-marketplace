@@ -37,4 +37,5 @@ module.exports = {
   mocha: {
     timeout: 20000,
   },
+  blockGasLimit:12450000,
 };

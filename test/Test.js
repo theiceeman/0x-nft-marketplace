@@ -2,10 +2,20 @@ const { NftSwapV4, NftSwap } = require("@traderxyz/nft-swap-sdk");
 const { expect } = require("chai");
 const { getDefaultProvider } = require("ethers");
 const { ethers } = require("hardhat");
+require("dotenv").config();
 
 describe("Greeter", function () {
   before(async () => {
-    [deployer, seller, buyer] = await ethers.getSigners();
+    // [deployer, seller, buyer] = await ethers.getSigners();
+
+    // Provider
+    const alchemyProvider = new ethers.providers.AlchemyProvider(
+      (network = "ropsten"),
+      process.env.ALCHEMY_API_KEY
+    );
+    // Signer
+    SELLER = new ethers.Wallet(process.env.PRV_KEY, alchemyProvider);
+    BUYER = new ethers.Wallet(process.env.PRV_KEY_2, alchemyProvider);
 
     //
     USD = await ethers.getContractFactory("USD");
@@ -23,14 +33,18 @@ describe("Greeter", function () {
       type: "ERC721", // 'ERC721' or 'ERC1155'
     };
     const FOUR_HUNDRED_TWENTY_WETH = {
-      tokenAddress: "0x6b175474e89094c44da98b954eedeac495271d0f", // WETH contract address
+      tokenAddress: process.env.WETH_ROPSTEN, // WETH contract address
       amount: "420000000000000000000", // 420 Wrapped-ETH (WETH is 18 digits)
       type: "ERC20",
     };
 
     // [Part 1: Maker (owner of the Punk) creates trade]
-    const nftSwapSdk = new NftSwapV4(await getDefaultProvider(), seller, CHAIN_ID);
-    const walletAddressMaker = seller.address;
+    const nftSwapSdk = new NftSwapV4(
+      await getDefaultProvider(),
+      SELLER,
+      CHAIN_ID
+    );
+    const walletAddressMaker = SELLER.address;
 
     // Approve NFT to trade (if required)
     await nftSwapSdk.approveTokenOrNftByAsset(CRYPTOPUNK, walletAddressMaker);
@@ -45,14 +59,21 @@ describe("Greeter", function () {
     const signedOrder = await nftSwapSdk.signOrder(order);
 
     // [Part 2: Taker that wants to buy the punk fills trade]
-    const _nftSwapSdk = new NftSwap( await getDefaultProvider(), buyer, CHAIN_ID);
-    const walletAddressTaker = buyer.address;
+    const _nftSwapSdk = new NftSwapV4(
+      await getDefaultProvider(),
+      BUYER,
+      CHAIN_ID
+    );
+    const walletAddressTaker = BUYER.address;
 
     // Approve USDC to trade (if required)
-    await _nftSwapSdk.approveTokenOrNftByAsset(
+    let txn = await _nftSwapSdk.approveTokenOrNftByAsset(
       FOUR_HUNDRED_TWENTY_WETH,
       walletAddressTaker
     );
+    await txn.wait();
+    console.log(txn);
+    return;
 
     // Fill order :)
     const fillTx = await _nftSwapSdk.fillSignedOrder(signedOrder);
