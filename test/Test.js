@@ -79,6 +79,18 @@ describe("NftSwap", function () {
     expect(normalizedSignedOrder.makerAddress.toLowerCase()).to.equal(
       SELLER.address.toLowerCase()
     );
+    
+console.log(
+  formatEther(
+    String(BigNumber.from(await ethers.provider.getBalance(SELLER.address)))
+  )
+);
+console.log(
+  formatEther(
+    String(BigNumber.from(await ethers.provider.getBalance(BUYER.address)))
+  )
+);
+
 
     // Uncomment to actually fill order
     const tx = await nftSwapperMaker.fillSignedOrder(signedOrder, undefined, {
