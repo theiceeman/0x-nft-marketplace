@@ -11,6 +11,12 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {},
+    localhost: {
+      url: `http://localhost:8545`,
+      timeout: 150000,
+      gas: 2100000,
+      gasPrice: 130000000000
+    },
     ropsten: {
       url: "https://speedy-nodes-nyc.moralis.io/6b34ee31fa58ed696d5d50f8/eth/ropsten",
       accounts: [PRV_KEY]
