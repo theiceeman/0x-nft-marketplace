@@ -6,7 +6,7 @@
   "license": "MIT",
   "dependencies": {
     "@openzeppelin/contracts": "^4.4.1",
-    "@traderxyz/nft-swap-sdk": "^0.22.1",
+    "@traderxyz/nft-swap-sdk": "0.22.1",
     "dotenv": "^16.0.0",
     "hardhat": "^2.8.2"
   },

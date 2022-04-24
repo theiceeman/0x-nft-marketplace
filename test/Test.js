@@ -1,17 +1,19 @@
-const { NftSwapV4, NftSwap } = require("@traderxyz/nft-swap-sdk");
+const { NftSwapV3: NftSwap, NftSwapV3 } = require("@traderxyz/nft-swap-sdk");
 const { expect } = require("chai");
-const { getDefaultProvider, BigNumber } = require("ethers");
-const { formatEther } = require("ethers/lib/utils");
+const { getDefaultProvider, BigNumber, utils } = require("ethers");
+const { formatEther, parseEther } = require("ethers/lib/utils");
 const { ethers } = require("hardhat");
 const { transferEther, impersonateAccount } = require("./helpers/utils");
 require("dotenv").config();
 
 //
-const WHALE = process.env.WHALE;
+const ETHER_WHALE = process.env.ETHER_WHALE;
 
-describe("Greeter", function () {
+describe("NftSwap", function () {
   before(async () => {
-    [deployer, SELLER, BUYER] = await ethers.getSigners();
+    [deployer] = await ethers.getSigners();
+    PROVIDER = await getDefaultProvider();
+    // console.log(PROVIDER)
 
     // Signer
     SELLER = new ethers.Wallet(process.env.PRV_KEY, await getDefaultProvider());
@@ -20,76 +22,75 @@ describe("Greeter", function () {
       await getDefaultProvider()
     );
 
-    whale = await impersonateAccount(WHALE);
-    await transferEther(whale, SELLER.address, "1");
-    await transferEther(whale, BUYER.address, "1");
+    SELLER_SIGNER = SELLER.connect(await getDefaultProvider());
+    BUYER_SIGNER = SELLER.connect(await getDefaultProvider());
+
+    etherWhale = await impersonateAccount(ETHER_WHALE);
+    await transferEther(etherWhale, SELLER.address, "10");
+    await transferEther(etherWhale, BUYER.address, "10");
 
     //
     USD = await ethers.getContractFactory("USD");
     usd = await USD.deploy();
+    usd.connect(deployer).transfer(BUYER.address, parseEther("50000"));
+
+    BOREDPUNK = await ethers.getContractFactory("BOREDPUNK");
+    boredPunk = await BOREDPUNK.deploy();
+    boredPunk.safeMint(SELLER_SIGNER.address);
 
     CHAIN_ID = 1; // Hardhat is 31337 Ganache is 1337
-  });
-  it("Should return the new greeting once it's changed", async function () {
-    // Scenario: User A wants to sell their CryptoPunk for 420 WETH
-    console.log(
-      formatEther(
-        String(BigNumber.from(await ethers.provider.getBalance(deployer.address)))
-      )
-    );return;
 
+    gasPrice = parseInt(utils.parseUnits("132", "gwei"));
+  });
+  it(" Scenario: User A wants to sell their BoredPunk for 420 USD", async function () {
     // Set up the assets we want to swap (CryptoPunk #69 and 420 WETH)
-    const CRYPTOPUNK = {
-      tokenAddress: "0xb47e3cd837ddf8e4c57f05d70ab865de6e193bbb",
-      tokenId: "420",
+    const BOREDPUNK = {
+      tokenAddress: boredPunk.address,
+      tokenId: "1",
       type: "ERC721", // 'ERC721' or 'ERC1155'
     };
     const FOUR_HUNDRED_TWENTY_WETH = {
-      tokenAddress: process.env.WETH_MAINNET, // WETH contract address
-      amount: "420000000000000000000", // 420 Wrapped-ETH (WETH is 18 digits)
+      tokenAddress: usd.address,
+      amount: "420000000000000000000",
       type: "ERC20",
     };
 
     // [Part 1: Maker (owner of the Punk) creates trade]
-    const nftSwapSdk = new NftSwap(
-      await getDefaultProvider(),
-      SELLER,
-      CHAIN_ID
+    const nftSwapperMaker = new NftSwap(SELLER_SIGNER, SELLER_SIGNER, CHAIN_ID);
+    const order = nftSwapperMaker.buildOrder(
+      [BOREDPUNK],
+      [FOUR_HUNDRED_TWENTY_WETH],
+      SELLER.address,
+      {
+        // Fix dates and salt so we have reproducible tests
+        expiration: new Date(3000, 10, 1),
+      }
     );
-    const walletAddressMaker = SELLER.address;
 
-    // Approve NFT to trade (if required)
-    await nftSwapSdk.approveTokenOrNftByAsset(CRYPTOPUNK, walletAddressMaker);
-    console.log("damn!");
+    const normalizedOrder = nftSwapperMaker.normalizeOrder(order);
+    const signedOrder = await nftSwapperMaker.signOrder(
+      normalizedOrder,
+      SELLER.address,
+      SELLER_SIGNER
+    );
+
+    const normalizedSignedOrder = nftSwapperMaker.normalizeOrder(signedOrder);
+
+    expect(normalizedSignedOrder.makerAddress.toLowerCase()).to.equal(
+      SELLER.address.toLowerCase()
+    );
+
+    // Uncomment to actually fill order
+    const tx = await nftSwapperMaker.fillSignedOrder(signedOrder, undefined, {
+      gasPrice,
+      gasLimit: "500000",
+      value: parseEther("1"), //  Rinkeby still has protocol fees, so we give it a little bit of ETH so its happy.
+    });
+    console.log(tx);
     return;
 
-    // Build order
-    const order = nftSwapSdk.buildOrder(
-      CRYPTOPUNK, // Maker asset to swap
-      FOUR_HUNDRED_TWENTY_WETH, // Taker asset to swap
-      walletAddressMaker
-    );
-    // Sign order so order is now fillable
-    const signedOrder = await nftSwapSdk.signOrder(order);
-
-    // [Part 2: Taker that wants to buy the punk fills trade]
-    const _nftSwapSdk = new NftSwap(
-      await getDefaultProvider(),
-      BUYER,
-      CHAIN_ID
-    );
-    const walletAddressTaker = BUYER.address;
-
-    // Approve USDC to trade (if required)
-    let txn = await _nftSwapSdk.approveTokenOrNftByAsset(
-      FOUR_HUNDRED_TWENTY_WETH,
-      walletAddressTaker
-    );
-    await txn.wait();
-
-    // Fill order :)
-    const fillTx = await _nftSwapSdk.fillSignedOrder(signedOrder);
-    const fillTxReceipt = await _nftSwapSdk.awaitTransactionHash(fillTx.hash);
-    console.log(`🎉 🥳 Order filled. TxHash: ${fillTxReceipt.transactionHash}`);
+    const txReceipt = await tx.wait();
+    expect(txReceipt.transactionHash).toBeTruthy();
+    console.log(`Swapped on Rinkeby (txHAsh: ${txReceipt.transactionIndex})`);
   });
 });

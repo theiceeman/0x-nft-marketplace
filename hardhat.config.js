@@ -1,3 +1,5 @@
+const { utils } = require("ethers");
+
 require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
 require("./tasks/PrintAccounts");
@@ -14,8 +16,8 @@ module.exports = {
     localhost: {
       url: `http://localhost:8545`,
       timeout: 150000,
-      gas: 2100000,
-      gasPrice: 130000000000
+      blockGasLimit: 9999999999999,
+      gasPrice: parseInt(utils.parseUnits("132", "gwei")),
     },
     ropsten: {
       url: "https://speedy-nodes-nyc.moralis.io/6b34ee31fa58ed696d5d50f8/eth/ropsten",
@@ -32,6 +34,9 @@ module.exports = {
       {
         version: "0.8.0",
       },
+      {
+        version: "0.8.1",
+      },
     ],
     settings: {
       optimizer: {
@@ -41,7 +46,7 @@ module.exports = {
     },
   },
   mocha: {
-    timeout: 20000,
+    timeout: 150000,
   },
   blockGasLimit:12450000,
 };

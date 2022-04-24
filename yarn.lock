@@ -648,7 +648,7 @@
   dependencies:
     defer-to-connect "^1.0.1"
 
-"@traderxyz/nft-swap-sdk@^0.22.1":
+"@traderxyz/nft-swap-sdk@0.22.1":
   version "0.22.1"
   resolved "https://registry.yarnpkg.com/@traderxyz/nft-swap-sdk/-/nft-swap-sdk-0.22.1.tgz#44a723598db55ea387a4380238b7d09853a87037"
   integrity sha512-mJY8TATcN/aaUjPHzCxaXVT8YzecepOXnXjW/Wk/4OevQdgC6uLFYumA6ZkJjRdw4OnHIOoHpZNCTJ13A9AeKQ==
