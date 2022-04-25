@@ -22,6 +22,10 @@ module.exports = {
     ropsten: {
       url: "https://speedy-nodes-nyc.moralis.io/6b34ee31fa58ed696d5d50f8/eth/ropsten",
       accounts: [PRV_KEY]
+    },
+    rinkeby: {
+      url: "https://speedy-nodes-nyc.moralis.io/6b34ee31fa58ed696d5d50f8/eth/rinkeby",
+      accounts: [PRV_KEY]
     }
   },
   etherscan: {
