@@ -24,6 +24,8 @@
     "clean": "npx hardhat clean",
     "compile": "npx hardhat compile",
     "test": "hardhat test --network localhost",
+    "test:rinkeby": "hardhat test --network rinkeby",
+    "test:ropsten": "hardhat test --network ropsten",
     "run": "npx hardhat run --network hardhat scripts/run.js",
     "test:timelock": "hardhat test --network hardhat ./test/TimeLock-test.js",
     "deploy:localhost": "npx hardhat run --network localhost scripts/run.js",
