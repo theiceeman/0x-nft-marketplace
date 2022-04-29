@@ -1,20 +1,13 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "erc721a/contracts/ERC721A.sol";
 
-contract BOREDPUNK is ERC721, Ownable {
-    using Counters for Counters.Counter;
+contract BOREDPUNK is ERC721A {
+  constructor() ERC721A("BoredPunk", "BOREDPUNK") {}
 
-    Counters.Counter private _tokenIdCounter;
-
-    constructor() ERC721("BOREDPUNK", "PUNK") {}
-
-    function safeMint(address to) public onlyOwner {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(to, tokenId);
-    }
+  function mint(uint256 quantity) external payable {
+    // _safeMint's second argument now takes in a quantity, not a tokenId.
+    _safeMint(msg.sender, quantity);
+  }
 }

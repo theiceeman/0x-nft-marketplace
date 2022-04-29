@@ -11,7 +11,7 @@ require("dotenv").config();
 
 describe("NftSwap", function () {
   before(async () => {
-    // [deployer] = await ethers.getSigners();
+    gasPrice = parseInt(utils.parseUnits("132", "gwei"));
     // PROVIDER = await getDefaultProvider();
     PROVIDER = new ethers.providers.StaticJsonRpcProvider(
       process.env.RINKEBY_NODE
@@ -24,26 +24,34 @@ describe("NftSwap", function () {
     SELLER_SIGNER = SELLER.connect(PROVIDER);
     BUYER_SIGNER = SELLER.connect(PROVIDER);
 
+    // Rinkeby Deployment...
+    usd = { address: "0xa61C61D12596560E5D00a213EE8913e30C8a78A7" };
+    boredPunk = { address: "0x9c0994f15cd0A976B4d3F98838d4096ddC8ccA8F" };
+    // boredPunk = await ethers.getContractAt("BOREDPUNK", boredPunk.address);
+
     /* USD = await ethers.getContractFactory("USD");
     usd = await USD.connect(BUYER).deploy();
 
     BOREDPUNK = await ethers.getContractFactory("BOREDPUNK");
-    boredPunk = await BOREDPUNK.deploy();
-    boredPunk.connect(SELLER).safeMint(SELLER_SIGNER.address); */
+    boredPunk = await BOREDPUNK.deploy(); 
+    await boredPunk.connect(SELLER).mint(SELLER.address, {
+      gasPrice,
+      gasLimit: 800000,
+    });*/
 
-    // console.log("boredPunk", boredPunk.address);
-    // console.log("usd", usd.address);
+    console.log("boredPunk", boredPunk.address);
+    console.log("usd", usd.address);
 
-    // Rinkeby Deployment...
-    usd = { address: "0x2a70bfFa2e2F65c42dE7086356C8c9D5Ef7a7D45" };
-    boredPunk = { address: "0x281BdCb7552bC606569fAeD0406407c79Df56Ca9" };
+    usd = await ethers.getContractAt("IERC20", usd.address);
+    console.log("usd.balanceOf", await usd.balanceOf(BUYER.address));
 
-    Usd = await ethers.getContractAt("IERC20", usd.address);
-    console.log("usd.balanceOf", await Usd.balanceOf(BUYER.address));
+    boredPunk = await ethers.getContractAt("IERC20", boredPunk.address);
+    console.log(
+      "boredPunk.balanceOf",
+      await boredPunk.balanceOf(SELLER.address)
+    );
 
     CHAIN_ID = 4; // Hardhat is 31337, Ganache is 1337, Rinkeby is 4, Ropsten is 3
-
-    gasPrice = parseInt(utils.parseUnits("132", "gwei"));
   });
   it("Scenario: User A wants to sell their BoredPunk for 420 USD", async function () {
     // Set up the assets we want to swap (CryptoPunk #69 and 420 WETH)
@@ -57,26 +65,16 @@ describe("NftSwap", function () {
       amount: "4200",
       type: "ERC20",
     };
+    
 
-    // [Part 1: Maker (owner of the Punk) creates trade]
-    var nftSwapperMaker = new NftSwap(PROVIDER, SELLER_SIGNER, CHAIN_ID);
-    const order = nftSwapperMaker.buildOrder(
-      [SELLER_ASSET],
-      [BUYER_ASSET],
-      SELLER.address
-    );
+    let _nftSwapperMaker = new NftSwap(PROVIDER, BUYER_SIGNER, CHAIN_ID);
 
-    const signedOrder = await nftSwapperMaker.signOrder(order, SELLER.address);
-    console.log({ signedOrder });
-
-    var _nftSwapperMaker = new NftSwap(PROVIDER, BUYER_SIGNER, CHAIN_ID);
-
-    // Check if we need to approve the NFT for swapping
+    // Check if we need to approve the ERC20 for swapping
     const approvalStatusForUserB = await _nftSwapperMaker.loadApprovalStatus(
       BUYER_ASSET,
       BUYER.address
     );
-    // If we do need to approve NFT for swapping, let's do that now
+    // If we do need to approve ERC20 for swapping, let's do that now
     if (!approvalStatusForUserB.contractApproved) {
       const approvalTx = await _nftSwapperMaker.approveTokenOrNftByAsset(
         BUYER_ASSET,
@@ -84,12 +82,41 @@ describe("NftSwap", function () {
       );
       const approvalTxReceipt = await approvalTx.wait();
       console.log(
-        `Approved ${usd.address} contract to swap with 0x. TxHash: ${approvalTxReceipt.transactionHash})`
+        `Approved usd ${usd.address} contract to swap with 0x. TxHash: ${approvalTxReceipt.transactionHash})`
+      );
+    }
+    
+    const order = _nftSwapperMaker.buildOrder(
+      [SELLER_ASSET],
+      [BUYER_ASSET],
+      BUYER.address
+    );
+
+    const signedOrder = await _nftSwapperMaker.signOrder(order, BUYER.address, BUYER_SIGNER);
+
+    // [Part 1: Maker (owner of the Punk) creates trade]
+    let nftSwapperMaker = new NftSwap(PROVIDER, SELLER_SIGNER, CHAIN_ID);
+
+    // Check if we need to approve the NFT for swapping
+    var approvalStatusForSeller = await nftSwapperMaker.loadApprovalStatus(
+      SELLER_ASSET,
+      SELLER.address
+    );
+    // If we do need to approve NFT for swapping, let's do that now
+    if (!approvalStatusForSeller.contractApproved) {
+      var approvalTx = await nftSwapperMaker.approveTokenOrNftByAsset(
+        SELLER_ASSET,
+        SELLER.address
+      );
+      var approvalTxReceipt = await approvalTx.wait();
+      console.log(
+        `Approved boredPunk ${boredPunk.address} contract to swap with 0x. TxHash: ${approvalTxReceipt.transactionHash})`
       );
     }
 
+
     // Taker fills order
-    const tx = await _nftSwapperMaker.fillSignedOrder(signedOrder, undefined, {
+    const tx = await nftSwapperMaker.fillSignedOrder(signedOrder,undefined, {
       gasPrice,
       gasLimit: "500000",
       value: parseEther("0.01"), //  Rinkeby still has protocol fees, so we give it a little bit of ETH so its happy.

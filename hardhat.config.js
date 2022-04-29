@@ -25,7 +25,10 @@ module.exports = {
     },
     rinkeby: {
       url: process.env.RINKEBY_NODE,
-      accounts: [PRV_KEY]
+      accounts: [PRV_KEY],
+      timeout: 150000,
+      blockGasLimit: 9999999999999,
+      gasPrice: parseInt(utils.parseUnits("132", "gwei")),
     }
   },
   etherscan: {
@@ -40,6 +43,9 @@ module.exports = {
       },
       {
         version: "0.8.1",
+      },
+      {
+        version: "0.8.4",
       },
     ],
     settings: {
