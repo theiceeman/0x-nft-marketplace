@@ -15,7 +15,7 @@ module.exports = {
     hardhat: {},
     localhost: {
       url: `http://localhost:8545`,
-      timeout: 150000,
+      timeout: 250000,
       blockGasLimit: 9999999999999,
       gasPrice: parseInt(utils.parseUnits("132", "gwei")),
     },
@@ -26,7 +26,7 @@ module.exports = {
     rinkeby: {
       url: process.env.RINKEBY_NODE,
       accounts: [PRV_KEY],
-      timeout: 150000,
+      timeout: 250000,
       blockGasLimit: 9999999999999,
       gasPrice: parseInt(utils.parseUnits("132", "gwei")),
     }
@@ -56,7 +56,7 @@ module.exports = {
     },
   },
   mocha: {
-    timeout: 150000,
+    timeout: 250000,
   },
   blockGasLimit:12450000,
 };
